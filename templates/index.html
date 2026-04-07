@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Voice Inbox</title>
+    <style>
+        :root {
+            --bg: #111113;
+            --card-bg: #1c1c1f;
+            --text: #e0e0e0;
+            --muted: #9e9ea8;
+            --accent: #5b5bff;
+            --border: #2f2f36;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(91, 91, 255, 0.12), transparent 24%),
+                radial-gradient(circle at bottom right, rgba(255, 107, 107, 0.08), transparent 18%),
+                var(--bg);
+        }
+        .shell {
+            width: min(920px, calc(100vw - 24px));
+            margin: 0 auto;
+            padding: 24px 0 48px;
+        }
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .brand h1 {
+            margin: 0;
+            font-size: 34px;
+        }
+        .brand p {
+            margin: 6px 0 0;
+            color: var(--muted);
+        }
+        .logout button,
+        .danger-button {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #17171b;
+            color: var(--text);
+            cursor: pointer;
+        }
+        .day {
+            margin: 28px 0 14px;
+            color: var(--muted);
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+        .feed {
+            display: grid;
+            gap: 14px;
+        }
+        .card {
+            padding: 18px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: rgba(28, 28, 31, 0.92);
+            box-shadow: 0 14px 44px rgba(0, 0, 0, 0.24);
+        }
+        .card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+        .card-title {
+            margin: 0 0 8px;
+            font-size: 20px;
+        }
+        .card-title a {
+            color: var(--text);
+            text-decoration: none;
+        }
+        .card-title a:hover {
+            color: #ffffff;
+        }
+        details {
+            margin-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 12px;
+        }
+        summary {
+            cursor: pointer;
+            color: var(--accent);
+        }
+        .preview {
+            margin-top: 12px;
+            color: #d5d5dc;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .topic-stack {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .topic-note {
+            padding: 12px;
+            border-radius: 14px;
+            background: #151519;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .topic-note strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+        .empty {
+            padding: 28px;
+            text-align: center;
+            color: var(--muted);
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 28px;
+        }
+        .pagination a,
+        .pagination span {
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: #17171b;
+            color: var(--text);
+            text-decoration: none;
+        }
+        .delete-form {
+            margin: 0;
+        }
+        @media (max-width: 640px) {
+            .shell { width: min(100vw, calc(100vw - 16px)); }
+            .topbar,
+            .card-header { flex-direction: column; align-items: stretch; }
+            .brand h1 { font-size: 28px; }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <header class="topbar">
+            <div class="brand">
+                <h1>🎙 Voice Inbox</h1>
+                <p>Лента голосовых записей и тем</p>
+            </div>
+            <form class="logout" method="post" action="{{ url_for('logout') }}">
+                <button type="submit">Выйти</button>
+            </form>
+        </header>
+
+        {% if grouped_items %}
+            {% for group in grouped_items %}
+            <section>
+                <div class="day">{{ group["day_label"] }}</div>
+                <div class="feed">
+                    {% for item in group["items"] %}
+                    <article class="card">
+                        <div class="card-header">
+                            <div>
+                                {% if item.kind == "recording" %}
+                                <h2 class="card-title">
+                                    <a href="{{ url_for('recording_detail', recording_id=item.id) }}">
+                                        {{ item.created_at|time_label }}  ⏱ {{ item.duration|duration }}
+                                    </a>
+                                </h2>
+                                <div class="meta">
+                                    {% if item.forward_from %}
+                                    <span>↩️ Переслано от: {{ item.forward_from }}</span>
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                <h2 class="card-title">
+                                    <a href="{{ url_for('topic_detail', topic_id=item.id) }}">
+                                        📂 Тема{% if item.title %}: {{ item.title }}{% endif %}
+                                    </a>
+                                </h2>
+                                <div class="meta">
+                                    <span>{{ item.recording_count }} голосовых</span>
+                                    <span>⏱ {{ item.total_duration|duration }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            {% if item.kind == "recording" %}
+                            <form class="delete-form" method="post" action="{{ url_for('delete_recording', recording_id=item.id) }}" onsubmit="return confirm('Удалить запись?');">
+                                <button class="danger-button" type="submit">🗑️</button>
+                            </form>
+                            {% else %}
+                            <form class="delete-form" method="post" action="{{ url_for('delete_topic', topic_id=item.id) }}" onsubmit="return confirm('Удалить тему и все записи внутри?');">
+                                <button class="danger-button" type="submit">🗑️</button>
+                            </form>
+                            {% endif %}
+                        </div>
+
+                        {% if item.kind == "recording" %}
+                        <details>
+                            <summary>▶ Показать транскрипцию</summary>
+                            <div class="preview">{{ item.transcript }}</div>
+                        </details>
+                        {% else %}
+                        <details>
+                            <summary>▶ Показать транскрипции</summary>
+                            <div class="topic-stack">
+                                {% if item.recordings %}
+                                    {% for recording in item.recordings %}
+                                    <div class="topic-note">
+                                        <strong>{{ recording.created_at|time_label }} · {{ recording.duration|duration }}</strong>
+                                        {{ recording.transcript|excerpt(220) }}
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="topic-note">В теме пока нет записей.</div>
+                                {% endif %}
+                            </div>
+                        </details>
+                        {% endif %}
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endfor %}
+        {% else %}
+            <div class="card empty">Записей пока нет.</div>
+        {% endif %}
+
+        <nav class="pagination">
+            {% if has_prev %}
+            <a href="{{ url_for('index', page=page - 1) }}">◀ Назад</a>
+            {% endif %}
+            <span>Страница {{ page }} / {{ total_pages }}</span>
+            {% if has_next %}
+            <a href="{{ url_for('index', page=page + 1) }}">Вперёд ▶</a>
+            {% endif %}
+        </nav>
+    </main>
+</body>
+</html>

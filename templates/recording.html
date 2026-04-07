@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Voice Inbox</title>
+    <style>
+        :root {
+            --bg: #111113;
+            --card-bg: #1c1c1f;
+            --text: #e0e0e0;
+            --muted: #9e9ea8;
+            --accent: #5b5bff;
+            --border: #2f2f36;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(91, 91, 255, 0.1), transparent 24%),
+                radial-gradient(circle at bottom right, rgba(255, 107, 107, 0.08), transparent 20%),
+                var(--bg);
+        }
+        .shell {
+            width: min(860px, calc(100vw - 24px));
+            margin: 0 auto;
+            padding: 24px 0 48px;
+        }
+        .back {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .card, .section {
+            padding: 22px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: rgba(28, 28, 31, 0.92);
+            box-shadow: 0 14px 44px rgba(0, 0, 0, 0.24);
+        }
+        .section { margin-top: 16px; }
+        h1, h2, h3 {
+            margin-top: 0;
+        }
+        .meta {
+            display: grid;
+            gap: 8px;
+            color: var(--muted);
+        }
+        .text {
+            white-space: pre-wrap;
+            line-height: 1.7;
+        }
+        .summary {
+            padding: 14px;
+            margin-top: 12px;
+            border-radius: 14px;
+            background: #151519;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+        .recording-block + .recording-block {
+            margin-top: 18px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .danger {
+            display: inline-block;
+            margin-top: 16px;
+        }
+        .danger button {
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: #17171b;
+            color: var(--text);
+            cursor: pointer;
+        }
+        @media (max-width: 640px) {
+            .shell { width: min(100vw, calc(100vw - 16px)); }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <a class="back" href="{{ url_for('index') }}">← Назад к ленте</a>
+
+        {% if entity_type == "recording" %}
+        <section class="card">
+            <h1>{{ recording.created_at|datetime_label }}</h1>
+            <div class="meta">
+                <div>Длительность: {{ recording.duration|duration }}</div>
+                {% if recording.forward_from %}
+                <div>↩️ Переслано от: {{ recording.forward_from }}</div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Транскрипция</h2>
+            <div class="text">{{ recording.transcript }}</div>
+        </section>
+
+        <section class="section">
+            <h2>Summary</h2>
+            {% if summaries %}
+                {% for summary in summaries %}
+                <div class="summary">{{ summary.summary }}</div>
+                {% endfor %}
+            {% else %}
+                <div class="meta">Summary ещё не сгенерирован.</div>
+            {% endif %}
+            <form class="danger" method="post" action="{{ url_for('delete_recording', recording_id=recording.id) }}" onsubmit="return confirm('Удалить запись?');">
+                <button type="submit">🗑️ Удалить запись</button>
+            </form>
+        </section>
+        {% else %}
+        <section class="card">
+            <h1>📂 Тема — {{ topic.created_at|day_label }}</h1>
+            <div class="meta">
+                <div>{{ recordings|length }} голосовых, общая длительность: {{ total_duration|duration }}</div>
+                {% if topic.closed_at %}
+                <div>Закрыта: {{ topic.closed_at|datetime_label }}</div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Записи темы</h2>
+            {% if recordings %}
+                {% for item in recordings %}
+                <div class="recording-block">
+                    <h3>Запись {{ loop.index }} ({{ item.created_at|time_label }}, {{ item.duration|duration }})</h3>
+                    <div class="text">{{ item.transcript }}</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="meta">В теме пока нет записей.</div>
+            {% endif %}
+        </section>
+
+        <section class="section">
+            <h2>Summary темы</h2>
+            {% if summaries %}
+                {% for summary in summaries %}
+                <div class="summary">{{ summary.summary }}</div>
+                {% endfor %}
+            {% else %}
+                <div class="meta">Summary ещё не сгенерирован.</div>
+            {% endif %}
+            <form class="danger" method="post" action="{{ url_for('delete_topic', topic_id=topic.id) }}" onsubmit="return confirm('Удалить тему и все записи внутри?');">
+                <button type="submit">🗑️ Удалить тему</button>
+            </form>
+        </section>
+        {% endif %}
+    </main>
+</body>
+</html>
