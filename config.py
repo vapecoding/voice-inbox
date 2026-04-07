@@ -6,6 +6,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from time_utils import DEFAULT_DISPLAY_TIMEZONE, resolve_display_timezone
+
 
 class ConfigError(RuntimeError):
     pass
@@ -21,6 +23,7 @@ class Config:
     database_path: Path
     public_base_url: str | None
     server_host: str | None
+    display_timezone: str
 
     @property
     def web_base_url(self) -> str | None:
@@ -42,6 +45,7 @@ def load_config(env_path: str | Path | None = None) -> Config:
     database_path = Path(os.getenv("DATABASE_PATH", "voice_inbox.db"))
     public_base_url = os.getenv("PUBLIC_BASE_URL", "").strip() or None
     server_host = os.getenv("SERVER_HOST", "").strip() or None
+    display_timezone = os.getenv("DISPLAY_TIMEZONE", DEFAULT_DISPLAY_TIMEZONE).strip() or DEFAULT_DISPLAY_TIMEZONE
 
     missing = []
     if not telegram_bot_token:
@@ -54,6 +58,11 @@ def load_config(env_path: str | Path | None = None) -> Config:
     if missing:
         raise ConfigError(", ".join(missing))
 
+    try:
+        resolve_display_timezone(display_timezone)
+    except ValueError as exc:
+        raise ConfigError(f"DISPLAY_TIMEZONE: {exc}") from exc
+
     return Config(
         telegram_bot_token=telegram_bot_token,
         deepgram_api_key=deepgram_api_key,
@@ -63,4 +72,5 @@ def load_config(env_path: str | Path | None = None) -> Config:
         database_path=database_path,
         public_base_url=public_base_url,
         server_host=server_host,
+        display_timezone=display_timezone,
     )

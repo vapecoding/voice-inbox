@@ -301,6 +301,21 @@ def get_topic_stats(topic_id: int) -> dict[str, Any]:
     }
 
 
+def get_archive_stats() -> dict[str, int]:
+    with _connect() as connection:
+        row = connection.execute(
+            """
+            SELECT
+                (SELECT COUNT(*) FROM recordings) AS recording_count,
+                (SELECT COUNT(*) FROM topics) AS topic_count
+            """
+        ).fetchone()
+    return {
+        "recording_count": int(row["recording_count"]) if row else 0,
+        "topic_count": int(row["topic_count"]) if row else 0,
+    }
+
+
 def get_feed_items(page: int, per_page: int = 20) -> tuple[list[dict[str, Any]], int]:
     with _connect() as connection:
         standalone_rows = connection.execute(

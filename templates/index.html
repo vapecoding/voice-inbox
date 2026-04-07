@@ -1,256 +1,217 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Voice Inbox</title>
-    <style>
-        :root {
-            --bg: #111113;
-            --card-bg: #1c1c1f;
-            --text: #e0e0e0;
-            --muted: #9e9ea8;
-            --accent: #5b5bff;
-            --border: #2f2f36;
-        }
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            font-family: "Segoe UI", sans-serif;
-            color: var(--text);
-            background:
-                radial-gradient(circle at top left, rgba(91, 91, 255, 0.12), transparent 24%),
-                radial-gradient(circle at bottom right, rgba(255, 107, 107, 0.08), transparent 18%),
-                var(--bg);
-        }
-        .shell {
-            width: min(920px, calc(100vw - 24px));
-            margin: 0 auto;
-            padding: 24px 0 48px;
-        }
-        .topbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        .brand h1 {
-            margin: 0;
-            font-size: 34px;
-        }
-        .brand p {
-            margin: 6px 0 0;
-            color: var(--muted);
-        }
-        .logout button,
-        .danger-button {
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            background: #17171b;
-            color: var(--text);
-            cursor: pointer;
-        }
-        .day {
-            margin: 28px 0 14px;
-            color: var(--muted);
-            font-size: 15px;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-        }
-        .feed {
-            display: grid;
-            gap: 14px;
-        }
-        .card {
-            padding: 18px;
-            border: 1px solid var(--border);
-            border-radius: 18px;
-            background: rgba(28, 28, 31, 0.92);
-            box-shadow: 0 14px 44px rgba(0, 0, 0, 0.24);
-        }
-        .card-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 16px;
-        }
-        .meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            color: var(--muted);
-            font-size: 14px;
-        }
-        .card-title {
-            margin: 0 0 8px;
-            font-size: 20px;
-        }
-        .card-title a {
-            color: var(--text);
-            text-decoration: none;
-        }
-        .card-title a:hover {
-            color: #ffffff;
-        }
-        details {
-            margin-top: 12px;
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-            padding-top: 12px;
-        }
-        summary {
-            cursor: pointer;
-            color: var(--accent);
-        }
-        .preview {
-            margin-top: 12px;
-            color: #d5d5dc;
-            line-height: 1.6;
-            white-space: pre-wrap;
-        }
-        .topic-stack {
-            display: grid;
-            gap: 10px;
-            margin-top: 12px;
-        }
-        .topic-note {
-            padding: 12px;
-            border-radius: 14px;
-            background: #151519;
-            border: 1px solid rgba(255, 255, 255, 0.04);
-        }
-        .topic-note strong {
-            display: block;
-            margin-bottom: 8px;
-        }
-        .empty {
-            padding: 28px;
-            text-align: center;
-            color: var(--muted);
-        }
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-top: 28px;
-        }
-        .pagination a,
-        .pagination span {
-            padding: 10px 14px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            background: #17171b;
-            color: var(--text);
-            text-decoration: none;
-        }
-        .delete-form {
-            margin: 0;
-        }
-        @media (max-width: 640px) {
-            .shell { width: min(100vw, calc(100vw - 16px)); }
-            .topbar,
-            .card-header { flex-direction: column; align-items: stretch; }
-            .brand h1 { font-size: 28px; }
-        }
-    </style>
-</head>
-<body>
-    <main class="shell">
-        <header class="topbar">
-            <div class="brand">
-                <h1>🎙 Voice Inbox</h1>
-                <p>Лента голосовых записей и тем</p>
+{% extends "base.html" %}
+
+{% block title %}Voice Inbox · Архив{% endblock %}
+
+{% block page %}
+<header class="app-header">
+    <div class="page-width app-header__inner">
+        <a class="brand" href="{{ url_for('index') }}">
+            <span class="brand__icon"><span class="material-symbols-outlined">mic</span></span>
+            <span class="brand__text">Voice Inbox</span>
+        </a>
+        <nav class="header-nav" aria-label="Навигация по архиву">
+            <button class="header-nav__button is-active" type="button" data-filter-button data-filter="all">Архив</button>
+            <button class="header-nav__button" type="button" data-filter-button data-filter="recording">Записи</button>
+            <button class="header-nav__button" type="button" data-filter-button data-filter="topic">Темы</button>
+        </nav>
+        <form method="post" action="{{ url_for('logout') }}">
+            <button class="header-action" type="submit">Выйти</button>
+        </form>
+    </div>
+</header>
+
+<main class="page-width page-stack">
+    <section class="hero-panel">
+        <div>
+            <div class="eyebrow">
+                <span class="material-symbols-outlined">auto_awesome</span>
+                Архив Voice Inbox
             </div>
-            <form class="logout" method="post" action="{{ url_for('logout') }}">
-                <button type="submit">Выйти</button>
-            </form>
-        </header>
+            <h1 class="page-title">Ваш архив</h1>
+            <div class="pill-row">
+                <span class="pill pill--accent">{{ archive_stats.recording_count }} записей</span>
+                <span class="pill">{{ archive_stats.topic_count }} тем</span>
+                <span class="pill">{{ display_timezone_label }}</span>
+            </div>
+        </div>
+        <label class="search-field">
+            <span class="material-symbols-outlined">search</span>
+            <input type="search" placeholder="Поиск в архиве..." data-feed-search>
+        </label>
+    </section>
 
-        {% if grouped_items %}
-            {% for group in grouped_items %}
-            <section>
-                <div class="day">{{ group["day_label"] }}</div>
-                <div class="feed">
-                    {% for item in group["items"] %}
-                    <article class="card">
-                        <div class="card-header">
-                            <div>
-                                {% if item.kind == "recording" %}
-                                <h2 class="card-title">
-                                    <a href="{{ url_for('recording_detail', recording_id=item.id) }}">
-                                        {{ item.created_at|time_label }}  ⏱ {{ item.duration|duration }}
-                                    </a>
-                                </h2>
-                                <div class="meta">
-                                    {% if item.forward_from %}
-                                    <span>↩️ Переслано от: {{ item.forward_from }}</span>
-                                    {% endif %}
+    {% if grouped_items %}
+        {% for group in grouped_items %}
+        <section class="day-group" data-day-group>
+            <div class="day-group__label">{{ group["day_label"] }}</div>
+            <div class="feed-stack">
+                {% for item in group["items"] %}
+                    {% if item.kind == "recording" %}
+                    <article class="archive-card" data-feed-item data-kind="recording">
+                        <div class="archive-card__main">
+                            <div class="archive-card__lead">
+                                <div class="icon-circle">
+                                    <span class="material-symbols-outlined">play_arrow</span>
                                 </div>
-                                {% else %}
-                                <h2 class="card-title">
-                                    <a href="{{ url_for('topic_detail', topic_id=item.id) }}">
-                                        📂 Тема{% if item.title %}: {{ item.title }}{% endif %}
-                                    </a>
-                                </h2>
-                                <div class="meta">
-                                    <span>{{ item.recording_count }} голосовых</span>
-                                    <span>⏱ {{ item.total_duration|duration }}</span>
+                                <div>
+                                    <div class="archive-card__topline">
+                                        <h2 class="archive-card__title">
+                                            <a href="{{ url_for('recording_detail', recording_id=item.id) }}">
+                                                {{ item.transcript|excerpt(70) }}
+                                            </a>
+                                        </h2>
+                                        <span class="archive-card__time">{{ item.created_at|time_label }}</span>
+                                    </div>
+                                    <div class="archive-card__meta">
+                                        <span class="meta-chip">
+                                            <span class="material-symbols-outlined">schedule</span>
+                                            {{ item.duration|duration }}
+                                        </span>
+                                        {% if item.forward_from %}
+                                        <span class="tag">{{ item.forward_from }}</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                {% endif %}
                             </div>
-
-                            {% if item.kind == "recording" %}
-                            <form class="delete-form" method="post" action="{{ url_for('delete_recording', recording_id=item.id) }}" onsubmit="return confirm('Удалить запись?');">
-                                <button class="danger-button" type="submit">🗑️</button>
-                            </form>
-                            {% else %}
-                            <form class="delete-form" method="post" action="{{ url_for('delete_topic', topic_id=item.id) }}" onsubmit="return confirm('Удалить тему и все записи внутри?');">
-                                <button class="danger-button" type="submit">🗑️</button>
-                            </form>
-                            {% endif %}
+                            <div class="transcript-box">{{ item.transcript|excerpt(220) }}</div>
+                            <details class="fold">
+                                <summary>Показать полностью</summary>
+                                <div class="fold__body">{{ item.transcript }}</div>
+                            </details>
                         </div>
-
-                        {% if item.kind == "recording" %}
-                        <details>
-                            <summary>▶ Показать транскрипцию</summary>
-                            <div class="preview">{{ item.transcript }}</div>
-                        </details>
-                        {% else %}
-                        <details>
-                            <summary>▶ Показать транскрипции</summary>
-                            <div class="topic-stack">
+                        <div class="archive-card__aside">
+                            <a class="button button--ghost" href="{{ url_for('recording_detail', recording_id=item.id) }}">Открыть</a>
+                            <form class="inline-form" method="post" action="{{ url_for('delete_recording', recording_id=item.id) }}" onsubmit="return confirm('Удалить запись?');">
+                                <button class="icon-button icon-button--danger" type="submit" aria-label="Удалить запись">
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+                    {% else %}
+                    <article class="archive-card archive-card--topic" data-feed-item data-kind="topic">
+                        <div class="archive-card__main">
+                            <div class="archive-card__lead">
+                                <div class="icon-circle icon-circle--folder">
+                                    <span class="material-symbols-outlined">folder_open</span>
+                                </div>
+                                <div>
+                                    <div class="archive-card__topline">
+                                        <h2 class="archive-card__title">
+                                            <a href="{{ url_for('topic_detail', topic_id=item.id) }}">
+                                                {{ item.title or ("Тема от " ~ (item.topic_created_at|day_label)) }}
+                                            </a>
+                                        </h2>
+                                        <span class="archive-card__time">{{ item.created_at|time_label }}</span>
+                                    </div>
+                                    <div class="archive-card__meta">
+                                        <span class="meta-chip">
+                                            <span class="material-symbols-outlined">queue_music</span>
+                                            {{ item.recording_count }} голосовых
+                                        </span>
+                                        <span class="meta-chip">
+                                            <span class="material-symbols-outlined">schedule</span>
+                                            Всего: {{ item.total_duration|duration }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="topic-preview-list">
                                 {% if item.recordings %}
-                                    {% for recording in item.recordings %}
-                                    <div class="topic-note">
+                                    {% for recording in item.recordings[:3] %}
+                                    <div class="topic-preview">
                                         <strong>{{ recording.created_at|time_label }} · {{ recording.duration|duration }}</strong>
-                                        {{ recording.transcript|excerpt(220) }}
+                                        <span>{{ recording.transcript|excerpt(150) }}</span>
                                     </div>
                                     {% endfor %}
+                                    {% if item.recordings|length > 3 %}
+                                    <div class="topic-preview__more">Еще {{ item.recordings|length - 3 }} записей внутри</div>
+                                    {% endif %}
                                 {% else %}
-                                    <div class="topic-note">В теме пока нет записей.</div>
+                                <div class="topic-preview">В теме пока нет записей.</div>
                                 {% endif %}
                             </div>
-                        </details>
-                        {% endif %}
+                        </div>
+                        <div class="archive-card__aside">
+                            <a class="button button--primary" href="{{ url_for('topic_detail', topic_id=item.id) }}">Открыть тему</a>
+                            <form class="inline-form" method="post" action="{{ url_for('delete_topic', topic_id=item.id) }}" onsubmit="return confirm('Удалить тему и все записи внутри?');">
+                                <button class="icon-button icon-button--danger" type="submit" aria-label="Удалить тему">
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button>
+                            </form>
+                        </div>
                     </article>
-                    {% endfor %}
-                </div>
-            </section>
-            {% endfor %}
-        {% else %}
-            <div class="card empty">Записей пока нет.</div>
-        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+    {% else %}
+    <section class="empty-state">
+        <div class="eyebrow">Voice Inbox</div>
+        <h2>Архив пока пуст</h2>
+        <p>Отправьте в бота первое голосовое сообщение, и оно появится здесь.</p>
+    </section>
+    {% endif %}
 
-        <nav class="pagination">
-            {% if has_prev %}
-            <a href="{{ url_for('index', page=page - 1) }}">◀ Назад</a>
-            {% endif %}
-            <span>Страница {{ page }} / {{ total_pages }}</span>
-            {% if has_next %}
-            <a href="{{ url_for('index', page=page + 1) }}">Вперёд ▶</a>
-            {% endif %}
-        </nav>
-    </main>
-</body>
-</html>
+    {% if total_pages > 1 %}
+    <nav class="pager" aria-label="Пагинация">
+        {% if has_prev %}
+        <a class="pager__item" href="{{ url_for('index', page=page - 1) }}">Назад</a>
+        {% endif %}
+        <span class="pager__item is-active">{{ page }}</span>
+        {% if has_next %}
+        <a class="pager__item" href="{{ url_for('index', page=page + 1) }}">Вперед</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+
+    <footer class="app-footer">
+        <span>© 2026 Voice Inbox</span>
+        <span>Панель показывает время в {{ display_timezone_label }}</span>
+    </footer>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const search = document.querySelector("[data-feed-search]");
+    const buttons = Array.from(document.querySelectorAll("[data-filter-button]"));
+    const items = Array.from(document.querySelectorAll("[data-feed-item]"));
+    const groups = Array.from(document.querySelectorAll("[data-day-group]"));
+    let activeFilter = "all";
+
+    const syncButtons = () => {
+        buttons.forEach((button) => {
+            button.classList.toggle("is-active", button.dataset.filter === activeFilter);
+        });
+    };
+
+    const applyFilters = () => {
+        const query = (search?.value || "").trim().toLowerCase();
+        items.forEach((item) => {
+            const matchesKind = activeFilter === "all" || item.dataset.kind === activeFilter;
+            const matchesQuery = !query || item.textContent.toLowerCase().includes(query);
+            item.hidden = !(matchesKind && matchesQuery);
+        });
+        groups.forEach((group) => {
+            const visibleCards = Array.from(group.querySelectorAll("[data-feed-item]")).some((card) => !card.hidden);
+            group.hidden = !visibleCards;
+        });
+    };
+
+    buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+            activeFilter = button.dataset.filter || "all";
+            syncButtons();
+            applyFilters();
+        });
+    });
+
+    search?.addEventListener("input", applyFilters);
+    syncButtons();
+    applyFilters();
+})();
+</script>
+{% endblock %}

@@ -1,5 +1,10 @@
 .env
 *.db
+*.db-shm
+*.db-wal
+*.log
 __pycache__/
 .venv/
 *.pyc
+.tmp_stitch/
+stitch.zip

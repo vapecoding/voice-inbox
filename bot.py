@@ -20,6 +20,7 @@ from telegram.ext import (
 
 import db
 from config import Config
+from time_utils import parse_utc_datetime, resolve_display_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ MONTHS_RU = (
 class VoiceInboxBot:
     def __init__(self, config: Config) -> None:
         self.config = config
+        self.display_timezone = resolve_display_timezone(config.display_timezone)
         self.active_topics: dict[int, int] = {}
         self.deepgram_client = httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0))
         self.groq_client = httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=10.0))
@@ -184,7 +186,7 @@ class VoiceInboxBot:
             base_url = self.config.web_base_url
             lines = [f'🔍 Найдено {len(rows)} записей по "{query}":', ""]
             for index, row in enumerate(rows, start=1):
-                created_at = parse_db_datetime(row["created_at"])
+                created_at = parse_utc_datetime(row["created_at"], self.display_timezone)
                 lines.append(f"{index}. {format_short_datetime(created_at)} ({format_duration(int(row['duration']))})")
                 lines.append(f'   "{build_snippet(row["transcript"], query)}"')
                 if base_url:
@@ -311,7 +313,7 @@ class VoiceInboxBot:
             await query.message.reply_text("❌ Тема не найдена.")
             return
 
-        combined_text = build_topic_text(recordings)
+        combined_text = build_topic_text(recordings, self.display_timezone)
 
         if action == "summary":
             summary_row = db.get_latest_summary_for_topic(topic_id)
@@ -471,10 +473,10 @@ class VoiceInboxBot:
         return None
 
 
-def build_topic_text(recordings: Iterable) -> str:
+def build_topic_text(recordings: Iterable, display_timezone) -> str:
     blocks = []
     for index, row in enumerate(recordings, start=1):
-        created_at = parse_db_datetime(row["created_at"])
+        created_at = parse_utc_datetime(row["created_at"], display_timezone)
         blocks.append(
             f"Запись {index} ({created_at.strftime('%d.%m %H:%M')}, {format_duration(int(row['duration']))})\n"
             f"{row['transcript']}"
@@ -529,7 +531,3 @@ def format_duration(total_seconds: int) -> str:
 
 def format_short_datetime(value: datetime) -> str:
     return f"{value.day} {MONTHS_RU[value.month - 1]}, {value.strftime('%H:%M')}"
-
-
-def parse_db_datetime(value: str) -> datetime:
-    return datetime.fromisoformat(value)

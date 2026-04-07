@@ -9,6 +9,7 @@ from flask import Flask, make_response, redirect, render_template, request, url_
 
 import db
 from config import Config
+from time_utils import normalize_timezone_label, parse_utc_datetime, resolve_display_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,11 @@ MONTHS_RU = (
 def create_app(config: Config) -> Flask:
     app = Flask(__name__)
     session_tokens: set[str] = set()
+    display_timezone = resolve_display_timezone(config.display_timezone)
+    display_timezone_label = normalize_timezone_label(config.display_timezone)
+
+    def parse_db_datetime(value: str) -> datetime:
+        return parse_utc_datetime(value, display_timezone)
 
     @app.before_request
     def require_login():
@@ -46,6 +52,10 @@ def create_app(config: Config) -> Flask:
     def add_headers(response):
         response.headers["X-Robots-Tag"] = "noindex, nofollow"
         return response
+
+    @app.context_processor
+    def inject_template_globals() -> dict[str, str]:
+        return {"display_timezone_label": display_timezone_label}
 
     @app.template_filter("duration")
     def duration_filter(value: int) -> str:
@@ -73,11 +83,13 @@ def create_app(config: Config) -> Flask:
     def index():
         page = parse_page(request.args.get("page", "1"))
         items, total = db.get_feed_items(page=page, per_page=20)
-        grouped_items = group_feed_items(items)
+        grouped_items = group_feed_items(items, parse_db_datetime)
+        archive_stats = db.get_archive_stats()
         total_pages = max((total - 1) // 20 + 1, 1) if total else 1
         return render_template(
             "index.html",
             grouped_items=grouped_items,
+            archive_stats=archive_stats,
             page=page,
             total_pages=total_pages,
             has_prev=page > 1,
@@ -180,10 +192,10 @@ def parse_page(value: str) -> int:
     return max(page, 1)
 
 
-def group_feed_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def group_feed_items(items: list[dict[str, Any]], parse_datetime) -> list[dict[str, Any]]:
     groups: list[dict[str, Any]] = []
     for item in items:
-        created_at = parse_db_datetime(item["created_at"])
+        created_at = parse_datetime(item["created_at"])
         day_key = created_at.strftime("%Y-%m-%d")
         if not groups or groups[-1]["day_key"] != day_key:
             groups.append(
@@ -195,10 +207,6 @@ def group_feed_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
             )
         groups[-1]["items"].append(item)
     return groups
-
-
-def parse_db_datetime(value: str) -> datetime:
-    return datetime.fromisoformat(value)
 
 
 def format_day_label(value: datetime) -> str:
