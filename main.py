@@ -4,6 +4,7 @@ import asyncio
 import logging
 import sys
 import threading
+import time
 
 from waitress import serve
 
@@ -18,9 +19,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger("voice-inbox")
 
+WEB_START_RETRIES = 5
+WEB_START_RETRY_DELAY = 3  # seconds
+
 
 def run_web_server(app, port: int) -> None:
-    serve(app, host="0.0.0.0", port=port)
+    for attempt in range(1, WEB_START_RETRIES + 1):
+        try:
+            serve(app, host="0.0.0.0", port=port)
+            return
+        except OSError as exc:
+            if attempt < WEB_START_RETRIES:
+                logger.warning(
+                    "Web server failed to start (attempt %d/%d): %s — retrying in %ds",
+                    attempt, WEB_START_RETRIES, exc, WEB_START_RETRY_DELAY,
+                )
+                time.sleep(WEB_START_RETRY_DELAY)
+            else:
+                logger.error(
+                    "Web server failed to start after %d attempts: %s",
+                    WEB_START_RETRIES, exc,
+                )
+                sys.exit(1)
 
 
 def main() -> None:
